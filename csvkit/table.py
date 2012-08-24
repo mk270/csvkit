@@ -79,12 +79,13 @@ class Table(list):
     """
     A normalized data table and inferred annotations (nullable, etc.).
     """
-    def __init__(self, columns=[], name='new_table'):
+    def __init__(self, columns=[], name='new_table', column_names=[]):
         """
         Generic constructor. You should normally use a from_* method to create a Table.
         """
         list.__init__(self, columns)
         self.name = name
+        self.column_names = column_names
 
     def __str__(self):
         return str(self.__unicode__())
@@ -174,7 +175,7 @@ class Table(list):
         return row_data
 
     @classmethod
-    def from_csv(cls, f, name='from_csv_table', snifflimit=None, column_ids=None, blanks_as_nulls=True, zero_based=False, **kwargs):
+    def from_csv(cls, f, name='from_csv_table', snifflimit=None, column_ids=None, blanks_as_nulls=True, zero_based=False, read_header=False, **kwargs):
         """
         Creates a new Table from a file-like object containing CSV data.
 
@@ -194,10 +195,14 @@ class Table(list):
 
         dialect = sniffer.sniff_dialect(sample)
 
-        f = StringIO(contents) 
+        f = StringIO(contents)
         reader = CSVKitReader(f, dialect=dialect, **kwargs)
 
         headers = reader.next()
+
+        column_names = []
+        if read_header:
+            column_names = [ headers[c] for c in range(len(headers)) ]
         
         if column_ids:
             column_ids = parse_column_identifiers(column_ids, headers, zero_based)
@@ -220,7 +225,7 @@ class Table(list):
         for i, c in enumerate(data_columns):
             columns.append(Column(column_ids[i], headers[i], c, blanks_as_nulls=blanks_as_nulls))
 
-        return Table(columns, name=name)
+        return Table(columns, name=name, column_names=column_names)
 
     def to_rows(self, serialize_dates=False):
         """
